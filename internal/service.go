@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/google/uuid"
 )
@@ -24,8 +25,9 @@ func (t Travellers) GetTraveller(ctx context.Context, id uuid.UUID) (Traveller, 
 	return res, nil
 }
 
-func (t Travellers) CreateTraveller() {
-
+func (t Travellers) CreateTraveller(ctx context.Context, traveller Traveller) (uuid.UUID, error) {
+	log.Println(traveller)
+	return uuid.New(), nil
 }
 
 func (t Travellers) DeleteTraveller() {

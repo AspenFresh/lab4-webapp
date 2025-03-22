@@ -85,7 +85,7 @@ func (h TravellerHandler) CreateTraveller(w http.ResponseWriter, r *http.Request
 
 	log.Println("CreateTravellerPayload", payload)
 
-	h.service.CreateTraveller()
+	h.service.CreateTraveller(r.Context(), internal.Traveller{})
 
 	w.WriteHeader(http.StatusOK)
 }

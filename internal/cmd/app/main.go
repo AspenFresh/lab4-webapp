@@ -37,7 +37,7 @@ func newApplication() application {
 
 func newDB() (sqlx.ExtContext, error) {
 	dsn := "postgres://postgres:postgres@localhost:5432/travellers?sslmode=disable"
-	conn, err := sqlx.Open("postgres", dsn)
+	conn, err := sqlx.Connect("postgres", dsn)
 	if err != nil {
 		return nil, err
 	}

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/AspenFresh/lab4-webapp/internal"
+	"github.com/gorilla/mux"
 )
 
 type Handler struct {
@@ -33,4 +34,18 @@ func (h *Handler) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(createdUser)
+}
+
+func (h *Handler) GetUserHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	email := vars["email"]
+
+	user, err := h.service.GetUserByEmail(r.Context(), email)
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(user)
 }

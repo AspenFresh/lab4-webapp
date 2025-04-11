@@ -26,6 +26,7 @@ func main() {
 
 	r := mux.NewRouter()
 	r.HandleFunc("/users", handler.CreateUserHandler).Methods("POST")
+	r.HandleFunc("/users/{email}", handler.GetUserHandler).Methods("GET")
 
 	log.Println("Server is running on :8080")
 	log.Fatal(http.ListenAndServe(":8080", r))

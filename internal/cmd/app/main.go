@@ -1,75 +1,32 @@
 package main
 
 import (
-	"errors"
 	"log"
 	"net/http"
 
+	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 
-	"github.com/DenisGoldiner/webapp/internal"
-	"github.com/DenisGoldiner/webapp/internal/adapters/postgres"
-	"github.com/DenisGoldiner/webapp/internal/ports/rest"
+	"github.com/AspenFresh/lab4-webapp/internal"
+	"github.com/AspenFresh/lab4-webapp/internal/adapters/postgres"
+	"github.com/AspenFresh/lab4-webapp/internal/ports/rest"
 )
 
 func main() {
-	app := newApplication()
-	app.start()
-}
-
-type application struct {
-	server *http.Server
-}
-
-func newApplication() application {
-	dbExec, err := newDB()
+	db, err := sqlx.Connect("postgres", "user=postgres password=nik10sen dbname=lab4db sslmode=disable")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to connect to DB:", err)
 	}
+	defer db.Close()
 
-	server := newServer(dbExec)
+	dbClient := postgres.NewClient(db)
+	service := internal.NewUserService(dbClient)
+	handler := rest.NewHandler(service)
 
-	return application{
-		server: server,
-	}
-}
+	r := mux.NewRouter()
+	r.HandleFunc("/users", handler.CreateUserHandler).Methods("POST")
 
-func newDB() (sqlx.ExtContext, error) {
-	dsn := "postgres://postgres:postgres@localhost:5432/travellers?sslmode=disable"
-	conn, err := sqlx.Connect("postgres", dsn)
-	if err != nil {
-		return nil, err
-	}
-
-	return conn, nil
-}
-
-func newServer(dbExec sqlx.ExtContext) *http.Server {
-	travellersClient := postgres.NewClient(dbExec)
-	travellersService := internal.NewTravellers(travellersClient)
-
-	handlers := map[string]http.Handler{
-		"/api/v1/travellers": rest.NewTravellerHandler(travellersService),
-	}
-
-	mux := http.NewServeMux()
-	for route, handler := range handlers {
-		mux.Handle(route, handler)
-	}
-
-	return &http.Server{
-		Addr:    "localhost:8081",
-		Handler: mux,
-	}
-}
-
-func (app application) start() {
-	if err := app.server.ListenAndServe(); err != nil {
-		if errors.Is(err, http.ErrServerClosed) {
-			return
-		}
-
-		log.Printf("failed to start the HTTP server, error: %v", err)
-	}
+	log.Println("Server is running on :8080")
+	log.Fatal(http.ListenAndServe(":8080", r))
 }

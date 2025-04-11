@@ -2,61 +2,53 @@ package postgres
 
 import (
 	"context"
-	"errors"
-	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 
-	"github.com/DenisGoldiner/webapp/internal"
+	"github.com/AspenFresh/lab4-webapp/internal"
 )
 
 type Client struct {
-	dbExec sqlx.ExtContext
+	db *sqlx.DB
 }
 
-func NewClient(dbExec sqlx.ExtContext) Client {
-	return Client{dbExec: dbExec}
+func NewClient(db *sqlx.DB) Client {
+	return Client{db: db}
 }
 
-func (c Client) GetTraveller(ctx context.Context, id uuid.UUID) (internal.Traveller, error) {
-	q := "select id, first_name, last_name, age from travellers where id = $1"
+func (c Client) CreateUser(ctx context.Context, user internal.User) error {
+	_, err := c.db.ExecContext(ctx, `
+		INSERT INTO users (name, email, password, role_name) 
+		VALUES ($1, $2, $3, $4)`,
+		user.Name, user.Email, user.Password, user.Role.Name)
+	return err
+}
 
-	rows, err := c.dbExec.QueryxContext(ctx, q, id)
+func (c Client) GetUserByEmail(ctx context.Context, email string) (internal.User, error) {
+	var user internal.User
+	var roleName string
+
+	err := c.db.QueryRowxContext(ctx, `
+		SELECT id, name, email, password, role_name 
+		FROM users 
+		WHERE email = $1`, email).
+		Scan(&user.ID, &user.Name, &user.Email, &user.Password, &roleName)
+
 	if err != nil {
-		return internal.Traveller{}, fmt.Errorf("failed to fetch traveler: %w", err)
+		return internal.User{}, err
 	}
 
-	defer func() { _ = rows.Close() }()
-
-	var travelers []Traveller
-
-	for rows.Next() {
-		var traveler Traveller
-
-		if err = rows.StructScan(&traveler); err != nil {
-			return internal.Traveller{}, fmt.Errorf("failed to scan traveler: %w", err)
+	if roleName == "Admin" {
+		user.Role = internal.Role{
+			Name:        "Admin",
+			Permissions: []string{"create", "read", "update", "delete"},
 		}
-
-		travelers = append(travelers, traveler)
+	} else {
+		user.Role = internal.Role{
+			Name:        "User",
+			Permissions: []string{"read"},
+		}
 	}
 
-	if len(travelers) == 0 {
-		return internal.Traveller{}, errors.New("no travelers found")
-	}
-
-	return internal.Traveller{
-		ID:        travelers[0].ID,
-		FirstName: travelers[0].FirstName,
-		LastName:  travelers[0].LastName,
-		Age:       travelers[0].Age,
-	}, err
-}
-
-func (c Client) CreateTraveller() {
-
-}
-
-func (c Client) DeleteTraveller() {
-
+	return user, nil
 }

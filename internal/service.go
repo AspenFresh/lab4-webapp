@@ -2,34 +2,29 @@ package internal
 
 import (
 	"context"
-	"fmt"
-	"log"
-
-	"github.com/google/uuid"
 )
 
-type Travellers struct {
-	db Storage
+type Storage interface {
+	CreateUser(ctx context.Context, user User) error
+	GetUserByEmail(ctx context.Context, email string) (User, error)
 }
 
-func NewTravellers(db Storage) Travellers {
-	return Travellers{db: db}
+type UserService struct {
+	storage Storage
 }
 
-func (t Travellers) GetTraveller(ctx context.Context, id uuid.UUID) (Traveller, error) {
-	res, err := t.db.GetTraveller(ctx, id)
+func NewUserService(storage Storage) *UserService {
+	return &UserService{storage: storage}
+}
+
+func (s *UserService) CreateUser(ctx context.Context, user User) (User, error) {
+	err := s.storage.CreateUser(ctx, user)
 	if err != nil {
-		return Traveller{}, fmt.Errorf("failed to get traveller from db: %w", err)
+		return User{}, err
 	}
-
-	return res, nil
+	return user, nil
 }
 
-func (t Travellers) CreateTraveller(ctx context.Context, traveller Traveller) (uuid.UUID, error) {
-	log.Println(traveller)
-	return uuid.New(), nil
-}
-
-func (t Travellers) DeleteTraveller() {
-
+func (s *UserService) GetUserByEmail(ctx context.Context, email string) (User, error) {
+	return s.storage.GetUserByEmail(ctx, email)
 }

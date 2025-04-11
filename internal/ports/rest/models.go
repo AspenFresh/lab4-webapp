@@ -1,15 +1,24 @@
 package rest
 
-import "github.com/google/uuid"
-
-type Traveller struct {
-	ID        uuid.UUID `json:"id"`
-	FirstName string    `json:"first_name"`
-	LastName  string    `json:"last_name"`
+type Role struct {
+	Name        string   `json:"name"`
+	Permissions []string `json:"permissions"`
 }
 
-type CreateTravellerPayload struct {
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Age       int    `json:"age"`
+type User struct {
+	ID       int    `json:"id"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Role     Role   `json:"role"`
+}
+
+// Перевірка доступу користувача до певного дозволу
+func (u User) HasAccess(permission string) bool {
+	for _, p := range u.Role.Permissions {
+		if p == permission {
+			return true
+		}
+	}
+	return false
 }
